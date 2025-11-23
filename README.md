@@ -47,7 +47,7 @@ This is a basic Node.js application with CI/CD setup, designed to help you under
 ### Installation
 
 ```bash
-# Install dependencies
+# Install dependencies (this will also create package-lock.json)
 npm install
 
 # Run the application
@@ -225,7 +225,15 @@ Add test files in the `tests/` directory and they'll automatically run.
 
 ## 🧪 Testing the CI/CD Pipeline
 
-1. **Push code to GitHub**:
+1. **Generate lock file (recommended for production)**:
+   ```bash
+   npm install  # This creates package-lock.json
+   git add package-lock.json
+   git commit -m "Add package-lock.json"
+   ```
+   > **Note**: The workflow uses `npm install` which works without a lock file. For production, commit `package-lock.json` and update the workflow to use `npm ci` for faster, more reliable installs.
+
+2. **Push code to GitHub**:
    ```bash
    git init
    git add .
