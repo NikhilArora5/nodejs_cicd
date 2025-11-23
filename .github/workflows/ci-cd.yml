@@ -1,0 +1,128 @@
+name: CI/CD Pipeline
+
+# This workflow runs on every push and pull request
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Job 1: Lint and Test
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      # Step 2: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+      
+      # Step 4: Run linter (if you have one)
+      - name: Run linter
+        run: npm run lint || echo "Linter not configured, skipping..."
+        continue-on-error: true
+      
+      # Step 5: Run tests
+      - name: Run tests
+        run: npm test
+      
+      # Step 6: Upload test results (optional)
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.node-version }}
+          path: |
+            coverage/
+            test-results.xml
+          if-no-files-found: ignore
+
+  # Job 2: Build (if needed)
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: echo "Build step - add your build commands here"
+        # Example: npm run build (if you have a build script)
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            build/
+          if-no-files-found: ignore
+
+  # Job 3: Deploy (example - customize based on your deployment target)
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    # Only deploy on main branch pushes (not on PRs)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests before deploy
+        run: npm test
+      
+      # Example deployment steps (customize based on your needs)
+      - name: Deploy to staging/production
+        run: |
+          echo "Deployment step - customize this based on your deployment target"
+          echo "Examples:"
+          echo "  - Deploy to Heroku: git push heroku main"
+          echo "  - Deploy to AWS: aws deploy ..."
+          echo "  - Deploy to Docker: docker build && docker push"
+          echo "  - Deploy to Vercel/Netlify: vercel --prod"
+      
+      # Uncomment and configure based on your deployment platform
+      # - name: Deploy to Heroku
+      #   uses: akhileshns/heroku-deploy@v3.12.12
+      #   with:
+      #     heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+      #     heroku_app_name: "your-app-name"
+      #     heroku_email: "your-email@example.com"
+
